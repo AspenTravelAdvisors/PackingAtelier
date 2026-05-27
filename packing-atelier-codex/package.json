@@ -1,0 +1,14 @@
+{
+  "name": "packing-atelier-codex",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Luxury editorial packing-plan generator with itinerary upload, OpenAI planning, image prompts, PNG preview, and PDF export.",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
