@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Packing Atelier | BeVvip.com</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="workbench" aria-label="Itinerary builder">
+      <div class="brand-strip">
+        <div>
+          <p class="eyebrow">BeVvip.com</p>
+          <h1>The Packing Atelier</h1>
+        </div>
+        <div class="mark">BeVvip</div>
+      </div>
+
+      <section class="wardrobe-builder" aria-label="Build your packing list">
+        <button class="section-toggle" id="wardrobeToggle" type="button" aria-expanded="true">
+          <span><em>I</em> Build Your Packing List</span>
+          <span aria-hidden="true">⌄</span>
+        </button>
+        <div class="wardrobe-body" id="wardrobeBody">
+          <p>Tap the pieces you’re bringing. Add anything custom at the bottom of each category.</p>
+          <div class="wardrobe-grid" id="wardrobeGrid"></div>
+        </div>
+      </section>
+
+      <div class="input-grid">
+        <label class="field span">
+          <span>Manual itinerary</span>
+          <textarea id="manualText" placeholder="Paste dates, destinations, hotels, activities, dress codes, luggage constraints, laundry notes, and traveler preferences."></textarea>
+        </label>
+        <label class="field">
+          <span>Upload itinerary</span>
+          <input id="fileInput" type="file" accept=".txt,.md,.csv,.json,.pdf,.png,.jpg,.jpeg,.webp">
+        </label>
+        <label class="field">
+          <span>Style notes</span>
+          <input id="preferences" type="text" placeholder="Carry-on only, resort dinners, business casual, warm climate...">
+        </label>
+      </div>
+
+      <div class="toolbar">
+        <button id="generateBtn" class="primary">Generate board</button>
+        <button id="imageBtn">Generate illustrations</button>
+        <button id="pngBtn">Download PNG</button>
+        <button id="pdfBtn">Download PDF</button>
+      </div>
+      <p id="status" class="status">Ready for an itinerary.</p>
+    </section>
+
+    <section class="preview-wrap" aria-label="Packing plan preview">
+      <article id="board" class="board"></article>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="/app.js" type="module"></script>
+</body>
+</html>
