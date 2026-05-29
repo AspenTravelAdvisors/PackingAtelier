@@ -102,12 +102,44 @@ const schema = {
 };
 
 function fileContent(file) {
-  if (!file?.base64 || !file?.name) return [];
-  const type = file.type || "application/octet-stream";
-  if (type.startsWith("image/")) {
+  if (!file) return [];
+
+  // A single optimized image (downscaled photo or screenshot).
+  if (file.kind === "image" && file.base64) {
+    const type = file.type || "image/jpeg";
     return [{ type: "input_image", image_url: `data:${type};base64,${file.base64}`, detail: "high" }];
   }
-  return [{ type: "input_file", filename: file.name, file_data: `data:${type};base64,${file.base64}` }];
+
+  // Rendered pages from a scanned / image-only PDF.
+  if (file.kind === "images" && Array.isArray(file.images)) {
+    return file.images
+      .slice(0, 6)
+      .filter(Boolean)
+      .map((base64) => ({ type: "input_image", image_url: `data:image/jpeg;base64,${base64}`, detail: "high" }));
+  }
+
+  // Browser-extracted text travels in the prompt, not as a file part.
+  if (file.kind === "text") return [];
+
+  // Legacy / fallback base64 path (small raw files).
+  if (file.base64 && file.name) {
+    const type = file.type || "application/octet-stream";
+    if (type.startsWith("image/")) {
+      return [{ type: "input_image", image_url: `data:${type};base64,${file.base64}`, detail: "high" }];
+    }
+    return [{ type: "input_file", filename: file.name, file_data: `data:${type};base64,${file.base64}` }];
+  }
+
+  return [];
+}
+
+// Does the uploaded file carry any usable content?
+function fileHasContent(file) {
+  if (!file) return false;
+  if (file.kind === "text") return Boolean(String(file.text || "").trim());
+  if (file.kind === "image") return Boolean(file.base64);
+  if (file.kind === "images") return Array.isArray(file.images) && file.images.some(Boolean);
+  return Boolean(file.base64);
 }
 
 export async function createPlan(body = {}) {
@@ -141,12 +173,14 @@ export async function createPlan(body = {}) {
     tripProfile.fitNotes ? `Fit, modesty, or activity notes: ${tripProfile.fitNotes}` : ""
   ].filter(Boolean).join("\n");
   const file = body.file || null;
+  const fileText = file && file.kind === "text" ? String(file.text || "").trim() : "";
+  const hasFile = fileHasContent(file);
 
-  if (!manualText && !stopsText && !file?.base64 && !process.env.OPENAI_API_KEY) {
+  if (!manualText && !stopsText && !hasFile && !process.env.OPENAI_API_KEY) {
     return { plan: demoPlan(), demo: true };
   }
 
-  if (!manualText && !stopsText && !file?.base64) {
+  if (!manualText && !stopsText && !hasFile) {
     throw new Error("Add itinerary details or upload a file first.");
   }
 
@@ -156,11 +190,14 @@ export async function createPlan(body = {}) {
     return { plan, demo: true };
   }
 
+  const fileName = file?.name ? ` (${file.name})` : "";
   const itinerarySourceText = manualText
     ? `Itinerary text:\n${manualText}`
-    : file?.base64
-      ? "The itinerary is attached as a file."
-      : "Use the structured itinerary stops as the itinerary.";
+    : fileText
+      ? `Itinerary extracted from the uploaded file${fileName}:\n${fileText}`
+      : hasFile
+        ? `The itinerary is attached as image(s)${fileName}. Read the trip details from them.`
+        : "Use the structured itinerary stops as the itinerary.";
 
   const text = [
     "Create a generalized luxury travel editorial packing plan from this submitted itinerary.",
@@ -205,7 +242,13 @@ export async function createPlan(body = {}) {
   });
 
   const raw = extractResponseText(response);
-  return { plan: JSON.parse(raw), demo: false };
+  let plan;
+  try {
+    plan = JSON.parse(raw);
+  } catch {
+    throw new Error("The planner returned an unreadable response. Please try again.");
+  }
+  return { plan, demo: false };
 }
 
 export default async function handler(req, res) {
