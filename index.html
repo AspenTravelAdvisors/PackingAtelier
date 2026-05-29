@@ -106,6 +106,8 @@
           <label class="field">
             <span>Upload itinerary</span>
             <input id="fileInput" type="file" accept=".txt,.md,.csv,.json,.pdf,.png,.jpg,.jpeg,.webp">
+            <small class="field-hint">PDF, image, or text. Read in your browser, so even large brochures work — files up to 25&nbsp;MB.</small>
+            <small id="fileStatus" class="file-status" hidden></small>
           </label>
           <label class="field span">
             <span>Additional trip notes</span>
@@ -142,6 +144,7 @@
       <article id="board" class="board"></article>
     </section>
   </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="/app.js" type="module"></script>

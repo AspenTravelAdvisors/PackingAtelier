@@ -10,6 +10,7 @@ const els = {
   manualText: document.querySelector("#manualText"),
   preferences: document.querySelector("#preferences"),
   fileInput: document.querySelector("#fileInput"),
+  fileStatus: document.querySelector("#fileStatus"),
   wardrobeProfile: document.querySelector("#wardrobeProfile"),
   travelerCount: document.querySelector("#travelerCount"),
   colorScheme: document.querySelector("#colorScheme"),
@@ -130,8 +131,28 @@ for (const category of wardrobeCategories) {
   state.wardrobe.set(category.key, new Set(category.items.slice(0, 3)));
 }
 
-function setStatus(message) {
+function setStatus(message, tone = "") {
   els.status.textContent = message;
+  els.status.classList.remove("is-error", "is-success");
+  if (tone === "error") els.status.classList.add("is-error");
+  if (tone === "success") els.status.classList.add("is-success");
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return "";
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function showFileStatus(file) {
+  if (!els.fileStatus) return;
+  if (!file) {
+    els.fileStatus.hidden = true;
+    els.fileStatus.textContent = "";
+    return;
+  }
+  els.fileStatus.hidden = false;
+  els.fileStatus.textContent = `Selected: ${file.name} (${formatBytes(file.size)})`;
 }
 
 function setBusy(isBusy) {
@@ -416,29 +437,166 @@ function renderBoard(plan = samplePlan) {
   `;
 }
 
-async function readFileAsPayload(file) {
-  if (!file) return null;
-  const base64 = await new Promise((resolve, reject) => {
+// Hard cap on what we send to the serverless function (Vercel body limit ~4.5MB).
+// We process files in the browser to stay well under this, but keep a stated guard.
+const MAX_PAYLOAD_BYTES = 4 * 1024 * 1024; // 4 MB sent to the server
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // 25 MB original file accepted in the browser
+const MAX_EXTRACTED_TEXT = 16000; // characters of itinerary text sent to the planner
+const PDFJS_VERSION = "3.11.174";
+
+function approxBase64Bytes(base64) {
+  return Math.ceil((base64 || "").length * 0.75);
+}
+
+let pdfReady = null;
+function ensurePdfJs() {
+  if (pdfReady) return pdfReady;
+  pdfReady = (async () => {
+    if (!window.pdfjsLib) throw new Error("PDF reader did not load. Paste the itinerary text instead.");
+    try {
+      const workerUrl = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.js`;
+      const blob = await (await fetch(workerUrl)).blob();
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(blob);
+    } catch {
+      // pdf.js falls back to a main-thread "fake worker" if this fails.
+    }
+    return window.pdfjsLib;
+  })();
+  return pdfReady;
+}
+
+async function extractPdfText(file) {
+  const pdfjsLib = await ensurePdfJs();
+  const data = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data }).promise;
+  const pages = Math.min(pdf.numPages, 40);
+  let text = "";
+  for (let p = 1; p <= pages; p += 1) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    text += `${content.items.map((item) => item.str).join(" ")}\n`;
+    if (text.length > MAX_EXTRACTED_TEXT * 1.5) break;
+  }
+  return text.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+async function renderPdfImages(file, maxPages = 4) {
+  const pdfjsLib = await ensurePdfJs();
+  const data = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data }).promise;
+  const pages = Math.min(pdf.numPages, maxPages);
+  const images = [];
+  for (let p = 1; p <= pages; p += 1) {
+    const page = await pdf.getPage(p);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+    images.push(canvas.toDataURL("image/jpeg", 0.8).split(",")[1]);
+  }
+  return images;
+}
+
+async function downscaleImage(file, maxDimension = 1600, quality = 0.82) {
+  const dataUrl = await new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onload = () => resolve(reader.result);
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
-  return {
-    name: file.name,
-    type: file.type || "application/octet-stream",
-    base64
-  };
+  const image = await new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Could not read that image."));
+    img.src = dataUrl;
+  });
+  const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext("2d").drawImage(image, 0, 0, width, height);
+  return canvas.toDataURL("image/jpeg", quality).split(",")[1] || "";
+}
+
+async function readFileAsText(file) {
+  const text = await file.text();
+  return text.slice(0, MAX_EXTRACTED_TEXT).trim();
+}
+
+// Turn any uploaded itinerary into a compact payload that fits the request limit.
+async function prepareFile(file) {
+  if (!file) return null;
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new Error(`That file is ${formatBytes(file.size)}. Please use a file under 25 MB, or paste the itinerary into Trip notes.`);
+  }
+  const name = file.name || "itinerary";
+  const type = file.type || "";
+  const isPdf = type === "application/pdf" || /\.pdf$/i.test(name);
+  const isImage = type.startsWith("image/") || /\.(png|jpe?g|webp|gif|heic)$/i.test(name);
+
+  if (isPdf) {
+    setStatus(`Reading "${name}"...`);
+    const text = await extractPdfText(file);
+    if (text && text.length >= 80) {
+      return { kind: "text", name, sourceType: "application/pdf", text: text.slice(0, MAX_EXTRACTED_TEXT) };
+    }
+    // Scanned / image-only PDF: render pages and send to vision.
+    setStatus(`Scanning "${name}" as images...`);
+    const images = await renderPdfImages(file);
+    if (images.length) return { kind: "images", name, images };
+    throw new Error("That PDF had no readable text. Try pasting the itinerary into Trip notes.");
+  }
+
+  if (isImage) {
+    setStatus(`Optimizing "${name}"...`);
+    const base64 = await downscaleImage(file);
+    if (approxBase64Bytes(base64) > MAX_PAYLOAD_BYTES) {
+      throw new Error("That image is too detailed to send. Try a smaller screenshot or paste the text.");
+    }
+    return { kind: "image", name, type: "image/jpeg", base64 };
+  }
+
+  // Text-like files (txt, md, csv, json, etc.).
+  const text = await readFileAsText(file);
+  if (!text) throw new Error("That file looked empty. Paste the itinerary into Trip notes instead.");
+  return { kind: "text", name, sourceType: type || "text/plain", text };
 }
 
 async function postJson(url, payload) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const data = await response.json();
-  if (!response.ok || data.error) throw new Error(data.error || "Request failed");
+  let response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  } catch {
+    throw new Error("Network error. Check your connection and try again.");
+  }
+
+  const body = await response.text();
+  let data = null;
+  try {
+    data = body ? JSON.parse(body) : {};
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    if (response.status === 413) {
+      throw new Error("That file is too large to send. Use a file under 4 MB, or paste the itinerary into Trip notes.");
+    }
+    if (response.status === 504 || response.status === 502) {
+      throw new Error("The planner timed out. Try again, or shorten the itinerary.");
+    }
+    throw new Error((data && data.error) || `Request failed (${response.status}). Please try again.`);
+  }
+
+  if (!data) throw new Error("The server returned an unexpected response. Please try again.");
+  if (data.error) throw new Error(data.error);
   return data;
 }
 
@@ -446,11 +604,12 @@ async function generatePlan() {
   setBusy(true);
   setStatus("Reading itinerary and designing the board...");
   try {
-    const file = els.fileInput.files[0] ? await readFileAsPayload(els.fileInput.files[0]) : null;
+    const file = els.fileInput.files[0] ? await prepareFile(els.fileInput.files[0]) : null;
     const itineraryStops = cleanItineraryStops();
     if (!file && !itineraryStops.length && !els.manualText.value.trim()) {
       throw new Error("Add an uploaded itinerary, at least one location/date stop, or trip notes first.");
     }
+    setStatus("Designing the board...");
     const data = await postJson("/api/create-plan", {
       manualText: els.manualText.value,
       itineraryStops,
@@ -461,9 +620,14 @@ async function generatePlan() {
     });
     state.images.clear();
     renderBoard(data.plan);
-    setStatus(data.demo ? "Demo board created. Add OPENAI_API_KEY for itinerary-specific output." : "Board created. You can generate illustrations next.");
+    setStatus(
+      data.demo
+        ? "Demo board created. Add OPENAI_API_KEY for itinerary-specific output."
+        : "Board created. You can generate illustrations next.",
+      "success"
+    );
   } catch (error) {
-    setStatus(error.message);
+    setStatus(error.message, "error");
   } finally {
     setBusy(false);
   }
@@ -566,6 +730,7 @@ async function downloadPdf() {
 }
 
 els.generateBtn.addEventListener("click", generatePlan);
+els.fileInput.addEventListener("change", () => showFileStatus(els.fileInput.files[0] || null));
 els.imageBtn.addEventListener("click", generateIllustrations);
 els.pngBtn.addEventListener("click", downloadPng);
 els.pdfBtn.addEventListener("click", downloadPdf);

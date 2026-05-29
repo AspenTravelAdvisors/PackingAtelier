@@ -361,6 +361,37 @@ textarea {
   margin: 0;
   color: var(--ink-soft);
   font-size: 13px;
+  transition: color 0.2s ease;
+}
+
+.status.is-error {
+  color: #9a3324;
+  font-weight: 600;
+}
+
+.status.is-success {
+  color: #2f6f4f;
+  font-weight: 600;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 6px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.4;
+}
+
+.file-status {
+  display: block;
+  margin-top: 4px;
+  color: #2f6f4f;
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 600;
 }
 
 .preview-wrap {
