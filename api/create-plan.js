@@ -12,6 +12,8 @@ const schema = {
     "palette",
     "destinations",
     "laundry",
+    "luggagePlan",
+    "packingRecommendations",
     "outfits",
     "packingList",
     "bestLooks",
@@ -47,6 +49,32 @@ const schema = {
       properties: {
         headline: { type: "string" },
         bullets: { type: "array", minItems: 2, maxItems: 5, items: { type: "string" } }
+      }
+    },
+    luggagePlan: {
+      type: "object",
+      additionalProperties: false,
+      required: ["headline", "bags", "constraints"],
+      properties: {
+        headline: { type: "string" },
+        bags: { type: "array", minItems: 1, maxItems: 4, items: { type: "string" } },
+        constraints: { type: "array", minItems: 2, maxItems: 6, items: { type: "string" } }
+      }
+    },
+    packingRecommendations: {
+      type: "array",
+      minItems: 4,
+      maxItems: 10,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["category", "quantity", "items", "reasoning"],
+        properties: {
+          category: { type: "string" },
+          quantity: { type: "string" },
+          items: { type: "array", minItems: 2, maxItems: 8, items: { type: "string" } },
+          reasoning: { type: "string" }
+        }
       }
     },
     outfits: {
@@ -85,14 +113,41 @@ function fileContent(file) {
 export async function createPlan(body = {}) {
   const manualText = String(body.manualText || "").trim();
   const preferences = String(body.preferences || "").trim();
+  const itineraryStops = Array.isArray(body.itineraryStops) ? body.itineraryStops : [];
+  const tripProfile = body.tripProfile && typeof body.tripProfile === "object" ? body.tripProfile : {};
+  const wardrobe = Array.isArray(body.wardrobe) ? body.wardrobe : [];
+  const wardrobeText = wardrobe
+    .filter((category) => category?.category && Array.isArray(category.items) && category.items.length)
+    .map((category) => `${category.category}: ${category.items.join(", ")}`)
+    .join("\n");
+  const stopsText = itineraryStops
+    .filter((stop) => stop?.location || stop?.startDate || stop?.endDate || stop?.notes)
+    .map((stop, index) => {
+      const dates = [stop.startDate, stop.endDate].filter(Boolean).join(" to ");
+      const nights = Number.isFinite(stop.nights) ? `${stop.nights} nights` : "";
+      const details = [dates, nights, stop.notes].filter(Boolean).join(" | ");
+      return `${index + 1}. ${stop.location || "Location not specified"}${details ? ` | ${details}` : ""}`;
+    })
+    .join("\n");
+  const profileText = [
+    tripProfile.wardrobeProfileLabel ? `Wardrobe profile: ${tripProfile.wardrobeProfileLabel}` : "",
+    tripProfile.travelerCount ? `Travelers: ${tripProfile.travelerCount}` : "",
+    tripProfile.colorScheme ? `Requested color scheme: ${tripProfile.colorScheme}` : "",
+    tripProfile.luggageTypeLabel ? `Luggage: ${tripProfile.luggageTypeLabel}` : "",
+    tripProfile.luggageDetails ? `Luggage details: ${tripProfile.luggageDetails}` : "",
+    tripProfile.laundryAccessLabel ? `Laundry access: ${tripProfile.laundryAccessLabel}` : "",
+    tripProfile.formalityLabel ? `Formality mix: ${tripProfile.formalityLabel}` : "",
+    tripProfile.climateComfortLabel ? `Climate comfort: ${tripProfile.climateComfortLabel}` : "",
+    tripProfile.fitNotes ? `Fit, modesty, or activity notes: ${tripProfile.fitNotes}` : ""
+  ].filter(Boolean).join("\n");
   const file = body.file || null;
 
-  if (!manualText && !file?.base64 && !process.env.OPENAI_API_KEY) {
+  if (!manualText && !stopsText && !file?.base64 && !process.env.OPENAI_API_KEY) {
     return { plan: demoPlan(), demo: true };
   }
 
-  if (!manualText && !file?.base64) {
-    throw new Error("Add itinerary text or upload a file first.");
+  if (!manualText && !stopsText && !file?.base64) {
+    throw new Error("Add itinerary details or upload a file first.");
   }
 
   if (!process.env.OPENAI_API_KEY) {
@@ -101,15 +156,31 @@ export async function createPlan(body = {}) {
     return { plan, demo: true };
   }
 
+  const itinerarySourceText = manualText
+    ? `Itinerary text:\n${manualText}`
+    : file?.base64
+      ? "The itinerary is attached as a file."
+      : "Use the structured itinerary stops as the itinerary.";
+
   const text = [
     "Create a generalized luxury travel editorial packing plan from this submitted itinerary.",
     "Do not mention any destination, route, date, or trip detail unless it appears in or is directly implied by the submitted itinerary.",
     "Do not copy wording, destinations, dates, or item choices from any reference image.",
     "Infer a trip title, route rhythm, outfit styling, laundry plan, and capsule packing strategy from the itinerary itself.",
+    "Create an automatic packing recommendation with specific quantities and clothing types, scaled to the number of travelers, nights, laundry access, climate needs, formality, and luggage capacity.",
+    "When the wardrobe profile is male or female, use garment language and fit assumptions appropriate to that profile; when gender-neutral or custom, avoid gendered assumptions and use the notes.",
+    "Use the requested color scheme as the palette when provided; otherwise infer an elegant palette from the trip.",
+    "Respect the stated luggage. If capacity is tight, recommend fewer shoes, repeatable layers, and laundry; if checked luggage is available, only expand where the itinerary justifies it.",
     "Use concise polished language suitable for a premium client-facing visual board.",
     "Prefer neutral, elegant clothing terms unless the itinerary clearly requires technical gear.",
+    wardrobeText
+      ? "Use the submitted wardrobe as the primary source of outfit pieces. Do not add clothing outside this list unless there is an itinerary-critical gap; if a gap exists, mention it as an optional add."
+      : "No wardrobe list was submitted, so infer a compact wardrobe from the itinerary.",
+    wardrobeText ? `Submitted wardrobe:\n${wardrobeText}` : "",
+    stopsText ? `Structured itinerary stops:\n${stopsText}` : "",
+    profileText ? `Traveler and packing brief:\n${profileText}` : "",
     preferences ? `User style and constraints: ${preferences}` : "",
-    manualText ? `Itinerary text:\n${manualText}` : "The itinerary is attached as a file."
+    itinerarySourceText
   ].filter(Boolean).join("\n\n");
 
   const response = await callOpenAI("/responses", {

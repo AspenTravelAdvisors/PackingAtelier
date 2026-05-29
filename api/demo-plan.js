@@ -33,6 +33,51 @@ export function demoPlan() {
         "Avoid same-day laundry for structured jackets, delicate knits, or dinner pieces."
       ]
     },
+    luggagePlan: {
+      headline: "Carry-On Capacity",
+      bags: [
+        "1 carry-on roller for folded capsule pieces, shoes, and laundry kit.",
+        "1 personal item for tech, jewelry case, toiletries, and the in-transit layer."
+      ],
+      constraints: [
+        "Two-shoe limit plus the travel shoe",
+        "One structured jacket",
+        "Mid-trip wash protects the shirt count",
+        "Palette stays navy, ivory, tobacco, mist, and stone"
+      ]
+    },
+    packingRecommendations: [
+      {
+        category: "Tops",
+        quantity: "6 total",
+        items: ["2 linen shirts", "1 mist blue shirt", "1 ivory tee", "1 cream knit", "1 print shirt"],
+        reasoning: "Enough fresh top layers for city polish, countryside repeats, and coastal evenings with one laundry reset."
+      },
+      {
+        category: "Bottoms",
+        quantity: "4 total",
+        items: ["2 tailored trousers", "1 stone chino", "1 short or relaxed pant"],
+        reasoning: "Neutral bottoms do the heavy repeat work while still covering warm days."
+      },
+      {
+        category: "Layers",
+        quantity: "3 total",
+        items: ["tan sport coat", "tobacco overshirt", "light travel jacket"],
+        reasoning: "A single structured layer keeps dinner looks sharp; soft layers handle transfers and weather shifts."
+      },
+      {
+        category: "Shoes",
+        quantity: "2 packed + 1 worn",
+        items: ["clean trainers worn in transit", "brown loafers", "optional sandal if coastal plans require it"],
+        reasoning: "Three footwear roles are enough without crowding the carry-on."
+      },
+      {
+        category: "Daily essentials",
+        quantity: "Trip length + 2",
+        items: ["underwear", "socks", "sleepwear", "swim or wellness layer"],
+        reasoning: "Small essentials scale with nights and should be the first laundry priority."
+      }
+    ],
     outfits: [
       {
         destination: "Arrival City",
