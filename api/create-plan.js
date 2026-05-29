@@ -33,9 +33,10 @@ const schema = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["name", "nights", "mood", "heroPrompt"],
+        required: ["name", "dates", "nights", "mood", "heroPrompt"],
         properties: {
           name: { type: "string" },
+          dates: { type: "string" },
           nights: { type: "number" },
           mood: { type: "string" },
           heroPrompt: { type: "string" }
@@ -80,13 +81,14 @@ const schema = {
     outfits: {
       type: "array",
       minItems: 3,
-      maxItems: 18,
+      maxItems: 30,
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["destination", "label", "dayLook", "dinnerLook", "note"],
+        required: ["destination", "date", "label", "dayLook", "dinnerLook", "note"],
         properties: {
           destination: { type: "string" },
+          date: { type: "string" },
           label: { type: "string" },
           dayLook: { type: "array", minItems: 3, maxItems: 6, items: { type: "string" } },
           dinnerLook: { type: "array", minItems: 3, maxItems: 6, items: { type: "string" } },
@@ -200,14 +202,21 @@ export async function createPlan(body = {}) {
         : "Use the structured itinerary stops as the itinerary.";
 
   const text = [
-    "Create a generalized luxury travel editorial packing plan from this submitted itinerary.",
-    "Do not mention any destination, route, date, or trip detail unless it appears in or is directly implied by the submitted itinerary.",
-    "Do not copy wording, destinations, dates, or item choices from any reference image.",
-    "Infer a trip title, route rhythm, outfit styling, laundry plan, and capsule packing strategy from the itinerary itself.",
-    "Create an automatic packing recommendation with specific quantities and clothing types, scaled to the number of travelers, nights, laundry access, climate needs, formality, and luggage capacity.",
+    "Create a luxury travel editorial packing plan from this submitted itinerary.",
+    "EXTRACTION IS THE PRIORITY. Read the itinerary carefully and pull out the EXACT facts before styling anything:",
+    "- Identify every destination/stop in chronological order, using the real place names as written (include the city/island and region, e.g. 'Apia, Samoa' or 'Bora Bora, French Polynesia').",
+    "- For each destination, capture the EXACT date or date range exactly as it appears (e.g. 'Sep 30 – Oct 1', 'Oct 2 – 4', 'Oct 9 – 12'). Put this in each destination's 'dates' field. Do NOT invent, shift, or round dates.",
+    "- Compute 'nights' for each destination from its date range (number of nights spent there). If a segment is a single dated day, use 0 or 1 as appropriate.",
+    "- Watch for itinerary quirks like 'day lost/gained crossing the dateline', flight durations, arrival/departure days, and optional pre/post extensions; reflect them but do not let them corrupt the core dated stops.",
+    "- Use each destination's actual described activities (snorkeling, cultural tour, helicopter flight, welcome/farewell dinner, spa, beach barbecue, etc.) to drive the outfit and packing choices for that stop.",
+    "Build a day-by-day outfit plan: for EACH dated day of the trip, output one outfit entry with the real date in 'date' (e.g. 'Oct 3'), the destination name in 'destination' (matching a destination 'name' exactly), and a short activity-based 'label' (e.g. 'Cultural tour', 'Arrival dinner', 'Lagoon day'). Provide a Day look and a Dinner look for every day. Cover the whole trip in order; only collapse days if the trip is very long (>14 days), in which case give at least an arrival, a signature, and a departure day per destination.",
+    "Do not copy wording or item choices from any reference image.",
+    "Infer the trip title, route rhythm, outfit styling, laundry plan, and capsule packing strategy from the itinerary itself.",
+    "Create an automatic packing recommendation with specific quantities and clothing types, scaled to the number of travelers, total nights, laundry access, climate needs, formality, and luggage capacity.",
     "When the wardrobe profile is male or female, use garment language and fit assumptions appropriate to that profile; when gender-neutral or custom, avoid gendered assumptions and use the notes.",
     "Use the requested color scheme as the palette when provided; otherwise infer an elegant palette from the trip.",
     "Respect the stated luggage. If capacity is tight, recommend fewer shoes, repeatable layers, and laundry; if checked luggage is available, only expand where the itinerary justifies it.",
+    "Set 'dateLine' to the full trip date span taken from the itinerary (e.g. 'Sep 30 – Oct 13, 2026'); do not fabricate a year if none is given.",
     "Use concise polished language suitable for a premium client-facing visual board.",
     "Prefer neutral, elegant clothing terms unless the itinerary clearly requires technical gear.",
     wardrobeText

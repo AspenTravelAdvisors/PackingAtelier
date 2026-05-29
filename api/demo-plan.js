@@ -8,18 +8,21 @@ export function demoPlan() {
     destinations: [
       {
         name: "Arrival City",
+        dates: "Day 1–2",
         nights: 2,
         mood: "Architectural, walkable, polished",
         heroPrompt: "fine ink and watercolor travel sketch of an elegant European arrival city landmark, ivory paper, navy and tobacco accents"
       },
       {
         name: "Countryside Stay",
+        dates: "Day 3–5",
         nights: 3,
         mood: "Soft tailoring, lunches, slow evenings",
         heroPrompt: "fine ink and watercolor travel sketch of a luxury countryside inn and garden, editorial packing plan style"
       },
       {
         name: "Coastal Finale",
+        dates: "Day 6–7",
         nights: 2,
         mood: "Relaxed resort polish",
         heroPrompt: "fine ink and watercolor travel sketch of a refined coastal town with blue water, ivory paper, navy accents"
@@ -81,6 +84,7 @@ export function demoPlan() {
     outfits: [
       {
         destination: "Arrival City",
+        date: "Day 1",
         label: "Arrival Day",
         dayLook: ["light blue shirt", "cream trousers", "tobacco overshirt", "clean trainers"],
         dinnerLook: ["white linen shirt", "navy trousers", "tan sport coat", "brown loafers"],
@@ -88,6 +92,7 @@ export function demoPlan() {
       },
       {
         destination: "Arrival City",
+        date: "Day 2",
         label: "Full Day",
         dayLook: ["ivory tee", "navy overshirt", "stone chinos", "clean trainers"],
         dinnerLook: ["cream knit", "blue trousers", "tan sport coat", "brown loafers"],
@@ -95,6 +100,7 @@ export function demoPlan() {
       },
       {
         destination: "Countryside Stay",
+        date: "Day 3",
         label: "Arrival / Dinner",
         dayLook: ["blue linen shirt", "stone trousers", "tobacco overshirt", "loafers"],
         dinnerLook: ["ivory shirt", "navy trousers", "tan jacket", "brown loafers"],
@@ -102,6 +108,7 @@ export function demoPlan() {
       },
       {
         destination: "Countryside Stay",
+        date: "Day 5",
         label: "Full Day",
         dayLook: ["cream knit", "navy trousers", "light jacket", "trainers"],
         dinnerLook: ["mist blue shirt", "stone trousers", "tan sport coat", "loafers"],
@@ -109,6 +116,7 @@ export function demoPlan() {
       },
       {
         destination: "Coastal Finale",
+        date: "Day 6",
         label: "Travel + Dinner",
         dayLook: ["white tee", "blue overshirt", "stone shorts", "trainers"],
         dinnerLook: ["linen shirt", "navy trousers", "tan jacket", "loafers"],
@@ -116,6 +124,7 @@ export function demoPlan() {
       },
       {
         destination: "Coastal Finale",
+        date: "Day 7",
         label: "Full Day",
         dayLook: ["blue print shirt", "ivory trousers", "clean trainers"],
         dinnerLook: ["cream knit", "navy trousers", "brown loafers"],
