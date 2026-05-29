@@ -17,31 +17,117 @@
         <div class="mark">BeVvip</div>
       </div>
 
-      <section class="wardrobe-builder" aria-label="Build your packing list">
-        <button class="section-toggle" id="wardrobeToggle" type="button" aria-expanded="true">
-          <span><em>I</em> Build Your Packing List</span>
-          <span aria-hidden="true">⌄</span>
-        </button>
-        <div class="wardrobe-body" id="wardrobeBody">
-          <p>Tap the pieces you’re bringing. Add anything custom at the bottom of each category.</p>
-          <div class="wardrobe-grid" id="wardrobeGrid"></div>
+      <section class="planner-section auto-packing" aria-label="Automatic packing profile">
+        <div class="section-heading">
+          <p class="eyebrow">I Automatic packing</p>
+          <h2>Trip brief</h2>
+        </div>
+        <div class="profile-grid">
+          <label class="field">
+            <span>Wardrobe profile</span>
+            <select id="wardrobeProfile">
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+              <option value="gender-neutral">Gender-neutral / flexible</option>
+              <option value="custom">Custom in notes</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Travelers</span>
+            <input id="travelerCount" type="number" min="1" max="12" value="1">
+          </label>
+          <label class="field">
+            <span>Color scheme</span>
+            <input id="colorScheme" type="text" placeholder="Ivory, ink navy, tobacco, mist blue">
+          </label>
+          <label class="field">
+            <span>Luggage type</span>
+            <select id="luggageType">
+              <option value="carry-on and personal item">Carry-on + personal item</option>
+              <option value="personal item only">Personal item only</option>
+              <option value="carry-on only">Carry-on only</option>
+              <option value="checked bag and carry-on">Checked bag + carry-on</option>
+              <option value="multiple checked bags">Multiple checked bags</option>
+              <option value="custom">Custom in notes</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Luggage details</span>
+            <input id="luggageDetails" type="text" placeholder="Away carry-on, backpack, garment bag...">
+          </label>
+          <label class="field">
+            <span>Laundry access</span>
+            <select id="laundryAccess">
+              <option value="unknown">Unknown</option>
+              <option value="none">No laundry planned</option>
+              <option value="one mid-trip wash">One mid-trip wash</option>
+              <option value="hotel service">Hotel laundry service</option>
+              <option value="self-service">Self-service laundry</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Formality mix</span>
+            <select id="formality">
+              <option value="mixed">Mixed</option>
+              <option value="casual">Casual</option>
+              <option value="smart casual">Smart casual</option>
+              <option value="business">Business</option>
+              <option value="resort">Resort</option>
+              <option value="formal events">Formal events</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Climate comfort</span>
+            <select id="climateComfort">
+              <option value="neutral">Neutral</option>
+              <option value="runs cold">Runs cold</option>
+              <option value="runs warm">Runs warm</option>
+              <option value="sun protection">Needs sun protection</option>
+              <option value="rain ready">Needs rain-ready layers</option>
+            </select>
+          </label>
+          <label class="field span-wide">
+            <span>Fit, modesty, or activity notes</span>
+            <input id="fitNotes" type="text" placeholder="Petite fit, no heels, hiking day, modest dinners, wrinkle-free pieces...">
+          </label>
         </div>
       </section>
 
-      <div class="input-grid">
-        <label class="field span">
-          <span>Manual itinerary</span>
-          <textarea id="manualText" placeholder="Paste dates, destinations, hotels, activities, dress codes, luggage constraints, laundry notes, and traveler preferences."></textarea>
-        </label>
-        <label class="field">
-          <span>Upload itinerary</span>
-          <input id="fileInput" type="file" accept=".txt,.md,.csv,.json,.pdf,.png,.jpg,.jpeg,.webp">
-        </label>
-        <label class="field">
-          <span>Style notes</span>
-          <input id="preferences" type="text" placeholder="Carry-on only, resort dinners, business casual, warm climate...">
-        </label>
-      </div>
+      <section class="planner-section itinerary-section" aria-label="Itinerary details">
+        <div class="section-heading split-heading">
+          <div>
+            <p class="eyebrow">II Itinerary</p>
+            <h2>Stops and dates</h2>
+          </div>
+          <button id="addStopBtn" type="button">Add location</button>
+        </div>
+        <div id="itineraryStops" class="itinerary-stops"></div>
+        <div class="input-grid itinerary-inputs">
+          <label class="field">
+            <span>Upload itinerary</span>
+            <input id="fileInput" type="file" accept=".txt,.md,.csv,.json,.pdf,.png,.jpg,.jpeg,.webp">
+          </label>
+          <label class="field span">
+            <span>Additional trip notes</span>
+            <textarea id="manualText" placeholder="Hotels, activities, dress codes, weather concerns, events, transfers, or anything not captured above."></textarea>
+          </label>
+          <label class="field">
+            <span>Style notes</span>
+            <input id="preferences" type="text" placeholder="Minimal capsule, statement dinners, business casual, beach days...">
+          </label>
+        </div>
+      </section>
+
+      <section class="wardrobe-builder" aria-label="Build your packing list">
+        <button class="section-toggle" id="wardrobeToggle" type="button" aria-expanded="true">
+          <span><em>III</em> Pieces you already want to bring</span>
+          <span aria-hidden="true">⌄</span>
+        </button>
+        <div class="wardrobe-body" id="wardrobeBody">
+          <p>Optional: tap pieces you already own or definitely want included. The automatic recommendation will fill any gaps.</p>
+          <div class="wardrobe-grid" id="wardrobeGrid"></div>
+        </div>
+      </section>
 
       <div class="toolbar">
         <button id="generateBtn" class="primary">Generate board</button>

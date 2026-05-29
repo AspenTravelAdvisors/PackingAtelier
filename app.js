@@ -2,13 +2,25 @@ const state = {
   plan: null,
   file: null,
   images: new Map(),
-  wardrobe: new Map()
+  wardrobe: new Map(),
+  itineraryStops: [{ location: "", startDate: "", endDate: "", notes: "" }]
 };
 
 const els = {
   manualText: document.querySelector("#manualText"),
   preferences: document.querySelector("#preferences"),
   fileInput: document.querySelector("#fileInput"),
+  wardrobeProfile: document.querySelector("#wardrobeProfile"),
+  travelerCount: document.querySelector("#travelerCount"),
+  colorScheme: document.querySelector("#colorScheme"),
+  luggageType: document.querySelector("#luggageType"),
+  luggageDetails: document.querySelector("#luggageDetails"),
+  laundryAccess: document.querySelector("#laundryAccess"),
+  formality: document.querySelector("#formality"),
+  climateComfort: document.querySelector("#climateComfort"),
+  fitNotes: document.querySelector("#fitNotes"),
+  addStopBtn: document.querySelector("#addStopBtn"),
+  itineraryStops: document.querySelector("#itineraryStops"),
   wardrobeToggle: document.querySelector("#wardrobeToggle"),
   wardrobeBody: document.querySelector("#wardrobeBody"),
   wardrobeGrid: document.querySelector("#wardrobeGrid"),
@@ -93,6 +105,16 @@ const samplePlan = {
     headline: "Laundry Strategy",
     bullets: ["Generated from trip length, climate, transfers, and hotel rhythm.", "Optimized for repeatable pieces and minimum overpacking."]
   },
+  luggagePlan: {
+    headline: "Luggage Plan",
+    bags: ["Capacity guidance will adapt to the selected luggage and trip length."],
+    constraints: ["Generated after itinerary submission.", "Color palette and traveler profile shape the final capsule."]
+  },
+  packingRecommendations: [
+    { category: "Tops", quantity: "4-6", items: ["travel tee", "polished shirt", "dinner top"], reasoning: "Balanced for day repeats and evening changes." },
+    { category: "Bottoms", quantity: "2-3", items: ["tailored trouser", "casual pant", "weather-appropriate option"], reasoning: "Repeatable neutrals carry the capsule." },
+    { category: "Shoes", quantity: "2", items: ["walkable day shoe", "dinner shoe"], reasoning: "Enough range without overfilling luggage." }
+  ],
   outfits: [
     { destination: "Stop One", label: "Arrival", dayLook: ["travel layer", "soft trouser", "clean shoe"], dinnerLook: ["linen shirt", "tailored layer", "polished shoe"], note: "Generated after itinerary submission." },
     { destination: "Stop Two", label: "Full Day", dayLook: ["walkable base", "light layer", "day shoe"], dinnerLook: ["dinner shirt", "structured layer", "dress shoe"], note: "Generated after itinerary submission." },
@@ -135,6 +157,93 @@ function selectedWardrobe() {
     category: category.label,
     items: [...(state.wardrobe.get(category.key) || new Set())]
   })).filter((category) => category.items.length);
+}
+
+function blankStop() {
+  return { location: "", startDate: "", endDate: "", notes: "" };
+}
+
+function stopNights(stop) {
+  if (!stop.startDate || !stop.endDate) return null;
+  const start = new Date(`${stop.startDate}T00:00:00`);
+  const end = new Date(`${stop.endDate}T00:00:00`);
+  const diff = Math.round((end - start) / 86400000);
+  return Number.isFinite(diff) && diff > 0 ? diff : null;
+}
+
+function itineraryStopsFromDom() {
+  return [...els.itineraryStops.querySelectorAll(".itinerary-stop")].map((row) => ({
+    location: row.querySelector('[data-stop-field="location"]')?.value.trim() || "",
+    startDate: row.querySelector('[data-stop-field="startDate"]')?.value || "",
+    endDate: row.querySelector('[data-stop-field="endDate"]')?.value || "",
+    notes: row.querySelector('[data-stop-field="notes"]')?.value.trim() || ""
+  }));
+}
+
+function cleanItineraryStops() {
+  return itineraryStopsFromDom()
+    .map((stop) => ({ ...stop, nights: stopNights(stop) }))
+    .filter((stop) => stop.location || stop.startDate || stop.endDate || stop.notes);
+}
+
+function renderItineraryStops(stops = state.itineraryStops) {
+  state.itineraryStops = stops.length ? stops : [blankStop()];
+  els.itineraryStops.innerHTML = state.itineraryStops.map((stop, index) => `
+    <article class="itinerary-stop" data-index="${index}">
+      <label class="field">
+        <span>Location</span>
+        <input data-stop-field="location" type="text" value="${escapeHtml(stop.location)}" placeholder="Paris, France">
+      </label>
+      <label class="field">
+        <span>Start date</span>
+        <input data-stop-field="startDate" type="date" value="${escapeHtml(stop.startDate)}">
+      </label>
+      <label class="field">
+        <span>End date</span>
+        <input data-stop-field="endDate" type="date" value="${escapeHtml(stop.endDate)}">
+      </label>
+      <label class="field stop-notes">
+        <span>Plans or dress codes</span>
+        <input data-stop-field="notes" type="text" value="${escapeHtml(stop.notes)}" placeholder="Museum day, beach club, black-tie dinner...">
+      </label>
+      <button class="remove-stop" type="button" data-index="${index}" aria-label="Remove location" ${state.itineraryStops.length === 1 ? "disabled" : ""}>Remove</button>
+    </article>
+  `).join("");
+}
+
+function addItineraryStop() {
+  state.itineraryStops = itineraryStopsFromDom();
+  state.itineraryStops.push(blankStop());
+  renderItineraryStops(state.itineraryStops);
+}
+
+function removeItineraryStop(index) {
+  state.itineraryStops = itineraryStopsFromDom();
+  state.itineraryStops.splice(index, 1);
+  renderItineraryStops(state.itineraryStops);
+}
+
+function selectedLabel(select) {
+  return select.selectedOptions?.[0]?.textContent.trim() || select.value;
+}
+
+function tripProfile() {
+  return {
+    wardrobeProfile: els.wardrobeProfile.value,
+    wardrobeProfileLabel: selectedLabel(els.wardrobeProfile),
+    travelerCount: Math.max(1, Number(els.travelerCount.value || 1)),
+    colorScheme: els.colorScheme.value.trim(),
+    luggageType: els.luggageType.value,
+    luggageTypeLabel: selectedLabel(els.luggageType),
+    luggageDetails: els.luggageDetails.value.trim(),
+    laundryAccess: els.laundryAccess.value,
+    laundryAccessLabel: selectedLabel(els.laundryAccess),
+    formality: els.formality.value,
+    formalityLabel: selectedLabel(els.formality),
+    climateComfort: els.climateComfort.value,
+    climateComfortLabel: selectedLabel(els.climateComfort),
+    fitNotes: els.fitNotes.value.trim()
+  };
 }
 
 function renderWardrobe() {
@@ -200,6 +309,39 @@ function chunkOutfits(plan) {
   return byDestination;
 }
 
+function recommendationPanel(plan) {
+  const recommendations = Array.isArray(plan.packingRecommendations) ? plan.packingRecommendations : [];
+  const luggagePlan = plan.luggagePlan || {
+    headline: "Luggage Plan",
+    bags: ["Generated after itinerary submission."],
+    constraints: []
+  };
+  return `
+    <section class="recommendation-grid">
+      <div class="panel recommendations">
+        <h3>Automatic Pack</h3>
+        <div class="recommendation-list">
+          ${recommendations.map((recommendation) => `
+            <article class="recommendation-card">
+              <div>
+                <strong>${escapeHtml(recommendation.category)}</strong>
+                <span>${escapeHtml(recommendation.quantity)}</span>
+              </div>
+              <ul>${list(recommendation.items)}</ul>
+              <p>${escapeHtml(recommendation.reasoning)}</p>
+            </article>
+          `).join("") || "<p>Generated clothing quantities will appear here.</p>"}
+        </div>
+      </div>
+      <div class="panel luggage-panel">
+        <h3>${escapeHtml(luggagePlan.headline)}</h3>
+        <ul>${list(luggagePlan.bags)}</ul>
+        <div class="packing-list">${(luggagePlan.constraints || []).map((item) => `<span class="pill">${escapeHtml(item)}</span>`).join("")}</div>
+      </div>
+    </section>
+  `;
+}
+
 function renderBoard(plan = samplePlan) {
   state.plan = plan;
   const destinationGroups = chunkOutfits(plan);
@@ -229,6 +371,8 @@ function renderBoard(plan = samplePlan) {
       </div>
       <ul>${list(plan.laundry.bullets)}</ul>
     </section>
+
+    ${recommendationPanel(plan)}
 
     <section class="outfit-grid">
       ${destinationGroups.map((group, index) => `
@@ -303,8 +447,14 @@ async function generatePlan() {
   setStatus("Reading itinerary and designing the board...");
   try {
     const file = els.fileInput.files[0] ? await readFileAsPayload(els.fileInput.files[0]) : null;
+    const itineraryStops = cleanItineraryStops();
+    if (!file && !itineraryStops.length && !els.manualText.value.trim()) {
+      throw new Error("Add an uploaded itinerary, at least one location/date stop, or trip notes first.");
+    }
     const data = await postJson("/api/create-plan", {
       manualText: els.manualText.value,
+      itineraryStops,
+      tripProfile: tripProfile(),
       preferences: els.preferences.value,
       wardrobe: selectedWardrobe(),
       file
@@ -419,6 +569,12 @@ els.generateBtn.addEventListener("click", generatePlan);
 els.imageBtn.addEventListener("click", generateIllustrations);
 els.pngBtn.addEventListener("click", downloadPng);
 els.pdfBtn.addEventListener("click", downloadPdf);
+els.addStopBtn.addEventListener("click", addItineraryStop);
+els.itineraryStops.addEventListener("click", (event) => {
+  const button = event.target.closest(".remove-stop");
+  if (!button) return;
+  removeItineraryStop(Number(button.dataset.index));
+});
 els.wardrobeToggle.addEventListener("click", () => {
   const builder = els.wardrobeToggle.closest(".wardrobe-builder");
   const isCollapsed = builder.classList.toggle("is-collapsed");
@@ -440,5 +596,6 @@ els.wardrobeGrid.addEventListener("blur", (event) => {
   const input = event.target.closest(".custom-piece");
   if (input) addWardrobeItem(input);
 }, true);
+renderItineraryStops();
 renderWardrobe();
 renderBoard(samplePlan);
