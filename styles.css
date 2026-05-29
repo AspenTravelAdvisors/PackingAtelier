@@ -114,6 +114,63 @@ button.primary {
   background: rgba(255, 253, 248, 0.82);
 }
 
+.planner-section {
+  display: grid;
+  gap: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 253, 248, 0.7);
+  padding: 18px;
+}
+
+.section-heading {
+  display: grid;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+
+.section-heading h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 26px;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.split-heading {
+  grid-template-columns: 1fr auto;
+  align-items: end;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.span-wide {
+  grid-column: span 2;
+}
+
+.itinerary-stops {
+  display: grid;
+  gap: 10px;
+}
+
+.itinerary-stop {
+  display: grid;
+  grid-template-columns: minmax(170px, 1.1fr) 150px 150px minmax(220px, 1.4fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 253, 248, 0.78);
+}
+
+.remove-stop {
+  min-height: 40px;
+}
+
 .wardrobe-builder {
   border: 1px solid var(--line);
   background: rgba(255, 253, 248, 0.7);
@@ -267,8 +324,11 @@ h1 {
 }
 
 textarea,
+select,
 input[type="text"],
-input[type="file"] {
+input[type="file"],
+input[type="date"],
+input[type="number"] {
   width: 100%;
   border: 1px solid var(--line);
   background: var(--white);
@@ -277,9 +337,19 @@ input[type="file"] {
   padding: 10px;
 }
 
+select,
+input[type="date"],
+input[type="number"] {
+  min-height: 42px;
+}
+
 textarea {
   min-height: 128px;
   resize: vertical;
+}
+
+.itinerary-inputs textarea {
+  min-height: 92px;
 }
 
 .toolbar {
@@ -445,6 +515,74 @@ textarea {
   color: var(--ink-soft);
 }
 
+.recommendation-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 0.85fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.recommendation-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+}
+
+.recommendation-card {
+  display: grid;
+  gap: 5px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.recommendation-card:first-child,
+.recommendation-card:nth-child(2) {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.recommendation-card div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.recommendation-card strong {
+  color: var(--gold-deep);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.recommendation-card span {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.recommendation-card ul,
+.recommendation-card p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.recommendation-card ul {
+  padding-left: 16px;
+}
+
+.recommendation-card p {
+  color: var(--ink-soft);
+}
+
+.luggage-panel ul {
+  margin: 9px 12px 6px 28px;
+  padding: 0;
+  font-size: 13px;
+}
+
 .outfit-grid {
   display: grid;
   grid-template-columns: 128px 1fr 1fr;
@@ -591,13 +729,18 @@ textarea {
 
 @media (max-width: 900px) {
   .wardrobe-grid,
+  .profile-grid,
+  .itinerary-stop,
+  .recommendation-grid,
   .input-grid,
   .toolbar {
     grid-template-columns: 1fr;
   }
 
-  .span {
+  .span,
+  .span-wide {
     grid-row: auto;
+    grid-column: auto;
   }
 
   .preview-wrap {
@@ -613,8 +756,17 @@ textarea {
 }
 
 @media (min-width: 901px) and (max-width: 1220px) {
-  .wardrobe-grid {
+  .wardrobe-grid,
+  .profile-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .itinerary-stop {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .stop-notes {
+    grid-column: span 2;
   }
 }
 
