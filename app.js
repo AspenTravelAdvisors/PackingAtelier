@@ -98,9 +98,9 @@ const samplePlan = {
   strategy: "The board will adapt the tone, title, route, laundry plan, outfits, and visuals to the submitted itinerary.",
   palette: ["Ink", "Ivory", "Tobacco", "Mist", "Stone"],
   destinations: [
-    { name: "Stop One", nights: 2, mood: "Arrival polish", heroPrompt: "" },
-    { name: "Stop Two", nights: 3, mood: "Signature days", heroPrompt: "" },
-    { name: "Finale", nights: 2, mood: "Farewell dressing", heroPrompt: "" }
+    { name: "Stop One", dates: "Day 1–2", nights: 2, mood: "Arrival polish", heroPrompt: "" },
+    { name: "Stop Two", dates: "Day 3–5", nights: 3, mood: "Signature days", heroPrompt: "" },
+    { name: "Finale", dates: "Day 6–7", nights: 2, mood: "Farewell dressing", heroPrompt: "" }
   ],
   laundry: {
     headline: "Laundry Strategy",
@@ -117,9 +117,9 @@ const samplePlan = {
     { category: "Shoes", quantity: "2", items: ["walkable day shoe", "dinner shoe"], reasoning: "Enough range without overfilling luggage." }
   ],
   outfits: [
-    { destination: "Stop One", label: "Arrival", dayLook: ["travel layer", "soft trouser", "clean shoe"], dinnerLook: ["linen shirt", "tailored layer", "polished shoe"], note: "Generated after itinerary submission." },
-    { destination: "Stop Two", label: "Full Day", dayLook: ["walkable base", "light layer", "day shoe"], dinnerLook: ["dinner shirt", "structured layer", "dress shoe"], note: "Generated after itinerary submission." },
-    { destination: "Finale", label: "Departure", dayLook: ["repeatable layer", "comfortable pant", "travel shoe"], dinnerLook: ["best shirt", "evening layer", "polished shoe"], note: "Generated after itinerary submission." }
+    { destination: "Stop One", date: "Day 1", label: "Arrival", dayLook: ["travel layer", "soft trouser", "clean shoe"], dinnerLook: ["linen shirt", "tailored layer", "polished shoe"], note: "Generated after itinerary submission." },
+    { destination: "Stop Two", date: "Day 3", label: "Full Day", dayLook: ["walkable base", "light layer", "day shoe"], dinnerLook: ["dinner shirt", "structured layer", "dress shoe"], note: "Generated after itinerary submission." },
+    { destination: "Finale", date: "Day 7", label: "Departure", dayLook: ["repeatable layer", "comfortable pant", "travel shoe"], dinnerLook: ["best shirt", "evening layer", "polished shoe"], note: "Generated after itinerary submission." }
   ],
   packingList: ["shirts", "trousers", "light layers", "dinner layer", "day shoes", "evening shoes"],
   bestLooks: ["Generated best look", "Generated strongest repeat", "Generated dinner capsule"],
@@ -128,7 +128,8 @@ const samplePlan = {
 };
 
 for (const category of wardrobeCategories) {
-  state.wardrobe.set(category.key, new Set(category.items.slice(0, 3)));
+  // Nothing is pre-selected; the traveler taps only the pieces they want.
+  state.wardrobe.set(category.key, new Set());
 }
 
 function setStatus(message, tone = "") {
@@ -321,11 +322,20 @@ function imageTag(key, className, fallbackText) {
 
 function chunkOutfits(plan) {
   const byDestination = [];
+  const claimed = new Set();
   for (const destination of plan.destinations) {
     const outfits = plan.outfits.filter((outfit) => outfit.destination === destination.name);
-    const fallback = outfits.length ? outfits : plan.outfits.slice(0, 2);
-    const pair = fallback.length > 1 ? fallback.slice(0, 2) : [fallback[0], fallback[0]].filter(Boolean);
-    byDestination.push({ destination, outfits: pair });
+    outfits.forEach((outfit) => claimed.add(outfit));
+    byDestination.push({ destination, outfits });
+  }
+  // Surface any daily outfits whose destination label didn't match a route stop.
+  const orphans = plan.outfits.filter((outfit) => !claimed.has(outfit));
+  if (orphans.length && byDestination.length) {
+    byDestination[byDestination.length - 1].outfits.push(...orphans);
+  }
+  // Guarantee at least one card per destination so the rail never sits empty.
+  for (const group of byDestination) {
+    if (!group.outfits.length) group.outfits = plan.outfits.slice(0, 1);
   }
   return byDestination;
 }
@@ -380,6 +390,7 @@ function renderBoard(plan = samplePlan) {
           <div class="num">${index + 1}</div>
           ${imageTag(`destination-${index}`, "landmark", "Sketch")}
           <h3>${escapeHtml(destination.name)}</h3>
+          ${destination.dates ? `<p class="stop-dates">${escapeHtml(destination.dates)}</p>` : ""}
           <p>${escapeHtml(destination.nights)} nights • ${escapeHtml(destination.mood)}</p>
         </div>
       `).join("")}
@@ -395,31 +406,40 @@ function renderBoard(plan = samplePlan) {
 
     ${recommendationPanel(plan)}
 
-    <section class="outfit-grid">
+    <section class="outfit-section">
+      <h3 class="section-label">Daily Outfit Plan</h3>
       ${destinationGroups.map((group, index) => `
-        <aside class="destination-rail">
-          <div class="num">${index + 1}</div>
-          <h3>${escapeHtml(group.destination.name)}</h3>
-          <p>${escapeHtml(group.destination.nights)} nights</p>
-          <p><em>${escapeHtml(group.destination.mood)}</em></p>
-        </aside>
-        ${group.outfits.slice(0, 2).map((outfit, outfitIndex) => `
-          <article class="outfit-card">
-            <h4>${escapeHtml(outfit.label)}</h4>
-            <div class="look-cols">
-              <div class="look">
-                <strong>Day</strong>
-                <ul>${list(outfit.dayLook)}</ul>
-              </div>
-              <div class="look">
-                <strong>Dinner</strong>
-                <ul>${list(outfit.dinnerLook)}</ul>
-              </div>
-              ${imageTag(`item-${(index * 2) + outfitIndex}`, "item-art", "Look")}
-            </div>
-            <p class="note">${escapeHtml(outfit.note)}</p>
-          </article>
-        `).join("")}
+        <div class="destination-block">
+          <aside class="destination-rail">
+            <div class="num">${index + 1}</div>
+            <h3>${escapeHtml(group.destination.name)}</h3>
+            ${group.destination.dates ? `<p class="rail-dates">${escapeHtml(group.destination.dates)}</p>` : ""}
+            <p>${escapeHtml(group.destination.nights)} nights</p>
+            <p><em>${escapeHtml(group.destination.mood)}</em></p>
+          </aside>
+          <div class="day-cards">
+            ${group.outfits.map((outfit, outfitIndex) => `
+              <article class="outfit-card">
+                <h4>
+                  ${outfit.date ? `<span class="outfit-date">${escapeHtml(outfit.date)}</span>` : ""}
+                  ${escapeHtml(outfit.label)}
+                </h4>
+                <div class="look-cols">
+                  <div class="look">
+                    <strong>Day</strong>
+                    <ul>${list(outfit.dayLook)}</ul>
+                  </div>
+                  <div class="look">
+                    <strong>Dinner</strong>
+                    <ul>${list(outfit.dinnerLook)}</ul>
+                  </div>
+                  ${imageTag(`item-${(index * 4) + outfitIndex}`, "item-art", "Look")}
+                </div>
+                <p class="note">${escapeHtml(outfit.note)}</p>
+              </article>
+            `).join("")}
+          </div>
+        </div>
       `).join("")}
     </section>
 
@@ -427,6 +447,7 @@ function renderBoard(plan = samplePlan) {
       <div class="panel">
         <h3>Best Looks</h3>
         <ol>${list(plan.bestLooks)}</ol>
+        <p class="pill-label">Packing list</p>
         <div class="packing-list">${plan.packingList.map((item) => `<span class="pill">${escapeHtml(item)}</span>`).join("")}</div>
       </div>
       <div class="panel gold">

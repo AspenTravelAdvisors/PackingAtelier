@@ -176,6 +176,29 @@ button.primary {
   background: rgba(255, 253, 248, 0.7);
 }
 
+.section-action {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 250, 240, 0.6);
+}
+
+.section-action .primary {
+  min-height: 46px;
+  padding: 0 22px;
+  font-size: 15px;
+}
+
+.section-action-hint {
+  color: var(--ink-soft);
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 14px;
+}
+
 .wardrobe-body {
   display: grid;
   gap: 18px;
@@ -612,6 +635,66 @@ textarea {
   margin: 9px 12px 6px 28px;
   padding: 0;
   font-size: 13px;
+}
+
+.outfit-section {
+  display: grid;
+  gap: 10px;
+}
+
+.section-label {
+  margin: 4px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--blue);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+}
+
+.destination-block {
+  display: grid;
+  grid-template-columns: 128px 1fr;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.day-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.outfit-date {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--blue);
+  color: var(--white);
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+.rail-dates,
+.stop-dates {
+  font-weight: 600;
+}
+
+.rail-dates {
+  color: var(--white) !important;
+}
+
+.pill-label {
+  margin: 10px 12px 0;
+  color: var(--gold-deep);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
 }
 
 .outfit-grid {
