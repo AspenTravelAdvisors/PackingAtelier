@@ -418,7 +418,7 @@ function renderBoard(plan = samplePlan) {
             <p><em>${escapeHtml(group.destination.mood)}</em></p>
           </aside>
           <div class="day-cards">
-            ${group.outfits.map((outfit, outfitIndex) => `
+            ${group.outfits.map((outfit) => `
               <article class="outfit-card">
                 <h4>
                   ${outfit.date ? `<span class="outfit-date">${escapeHtml(outfit.date)}</span>` : ""}
@@ -433,7 +433,7 @@ function renderBoard(plan = samplePlan) {
                     <strong>Dinner</strong>
                     <ul>${list(outfit.dinnerLook)}</ul>
                   </div>
-                  ${imageTag(`item-${(index * 4) + outfitIndex}`, "item-art", "Look")}
+                  ${imageTag(`outfit-${plan.outfits.indexOf(outfit)}`, "item-art", "Look")}
                 </div>
                 <p class="note">${escapeHtml(outfit.note)}</p>
               </article>
@@ -644,7 +644,7 @@ async function generatePlan() {
     setStatus(
       data.demo
         ? "Demo board created. Add OPENAI_API_KEY for itinerary-specific output."
-        : "Board created. You can generate illustrations next.",
+        : "Board created. You can generate photorealistic outfit photos next.",
       "success"
     );
   } catch (error) {
@@ -654,13 +654,39 @@ async function generatePlan() {
   }
 }
 
+function outfitPersonDescriptor() {
+  switch (els.wardrobeProfile.value) {
+    case "male": return "a stylish man";
+    case "female": return "a stylish woman";
+    default: return "a stylish traveler";
+  }
+}
+
+// Turn one day's outfit into a photorealistic full-length photo prompt.
+function buildOutfitPrompt(outfit, plan) {
+  const person = outfitPersonDescriptor();
+  const place = outfit.destination || plan.title || "the destination";
+  const occasion = outfit.label ? outfit.label.toLowerCase() : "the day";
+  const dayLook = (outfit.dayLook || []).filter(Boolean).join(", ");
+  const dinnerLook = (outfit.dinnerLook || []).filter(Boolean).join(", ");
+  const palette = (plan.palette || []).filter(Boolean).join(", ");
+  return [
+    `Full-length photorealistic travel outfit photo of ${person} dressed for ${occasion} in ${place}.`,
+    dayLook ? `The daytime look features ${dayLook}.` : "",
+    dinnerLook ? `An elegant evening alternative would use ${dinnerLook}.` : "",
+    palette ? `Keep the wardrobe within this color palette: ${palette}.` : "",
+    "Show the daytime look worn head-to-toe on the model."
+  ].filter(Boolean).join(" ");
+}
+
 function illustrationJobs(plan) {
   const jobs = [];
   plan.destinations.slice(0, 8).forEach((destination, index) => {
-    if (destination.heroPrompt) jobs.push({ key: `destination-${index}`, prompt: destination.heroPrompt });
+    if (destination.heroPrompt) jobs.push({ key: `destination-${index}`, prompt: destination.heroPrompt, style: "illustration" });
   });
-  plan.illustrationPrompts.slice(0, 8).forEach((prompt, index) => {
-    jobs.push({ key: `item-${index}`, prompt });
+  // One photorealistic image per daily outfit, keyed to match its board card.
+  (plan.outfits || []).forEach((outfit, index) => {
+    jobs.push({ key: `outfit-${index}`, prompt: buildOutfitPrompt(outfit, plan), style: "photo" });
   });
   return jobs;
 }
@@ -669,19 +695,19 @@ async function generateIllustrations() {
   if (!state.plan) renderBoard(samplePlan);
   const jobs = illustrationJobs(state.plan);
   if (!jobs.length) {
-    setStatus("This board has no illustration prompts yet.");
+    setStatus("Generate a board first, then add outfit photos.");
     return;
   }
   setBusy(true);
   try {
     for (let index = 0; index < jobs.length; index += 1) {
       const job = jobs[index];
-      setStatus(`Generating illustration ${index + 1} of ${jobs.length}...`);
-      const data = await postJson("/api/create-illustration", { prompt: job.prompt });
+      setStatus(`Generating outfit photo ${index + 1} of ${jobs.length}...`);
+      const data = await postJson("/api/create-illustration", { prompt: job.prompt, style: job.style });
       if (data.image) state.images.set(job.key, data.image);
       renderBoard(state.plan);
     }
-    setStatus("Illustrations added to the board.");
+    setStatus("Photorealistic outfit images added to the board.");
   } catch (error) {
     setStatus(error.message);
   } finally {

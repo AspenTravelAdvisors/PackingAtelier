@@ -748,7 +748,7 @@ textarea {
 
 .look-cols {
   display: grid;
-  grid-template-columns: 1fr 1fr 94px;
+  grid-template-columns: 1fr 1fr 120px;
   gap: 8px;
 }
 
@@ -768,9 +768,10 @@ textarea {
 }
 
 .item-art {
-  width: 94px;
-  height: 116px;
-  object-fit: contain;
+  width: 120px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 .note {
